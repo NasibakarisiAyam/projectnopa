@@ -1,0 +1,26 @@
+{
+  "name": "bookruangan",
+  "version": "1.0.0",
+  "main": "backend/server.js",
+  "scripts": {
+    "dev": "nodemon backend/server.js",
+    "start": "node backend/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.544.0",
+    "mongoose": "^8.18.1",
+    "nodemon": "^3.1.10",
+    "react-calendar": "^6.0.0",
+    "react-hook-form": "^7.63.0",
+    "react-router-dom": "^7.9.1"
+  }
+}
