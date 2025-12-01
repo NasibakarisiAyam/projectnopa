@@ -24,6 +24,13 @@ const bookingSchema = new mongoose.Schema({
     reason: {
         type: String
     },
+    purpose: {
+        type: String,
+        enum: ['mandiri', 'kelompok', 'praktikum', 'rapat', 'seminar', 'lainnya']
+    },
+    purposeDetails: {
+        type: String
+    },
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected'],

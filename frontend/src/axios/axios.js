@@ -23,8 +23,18 @@ instance.interceptors.request.use(
 );
 
 // Response interceptor to handle errors
+// Treat application-level `code` in response as an error as well
 instance.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        const data = response?.data;
+        // If API returns an app-level code indicating error, reject it so client error handling runs
+        if (data && typeof data === 'object' && 'code' in data && data.code !== 200) {
+            const err = new Error(data.message || 'API error');
+            err.response = { status: data.code || response.status, data };
+            return Promise.reject(err);
+        }
+        return response;
+    },
     (error) => {
         if (error.response?.status === 401) {
             // Token expired or invalid

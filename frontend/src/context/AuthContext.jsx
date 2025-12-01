@@ -37,6 +37,13 @@ export const AuthProvider = ({ children }) => {
 
             const data = await response.json();
 
+            // Handle application-level wrapper with `code` field (some proxies/extensions use this)
+            if (data && typeof data === 'object' && 'code' in data && data.code !== 200) {
+                const err = new Error(data.message || 'API error');
+                err.response = { status: data.code, data };
+                throw err;
+            }
+
             if (response.ok) {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
@@ -47,7 +54,9 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Login error:', error);
-            return { success: false, message: 'Network error. Please try again.' };
+            // expose server message when available
+            const message = error?.response?.data?.message || error?.message || 'Network error. Please try again.';
+            return { success: false, message };
         }
     };
 
@@ -63,6 +72,12 @@ export const AuthProvider = ({ children }) => {
 
             const data = await response.json();
 
+            if (data && typeof data === 'object' && 'code' in data && data.code !== 200) {
+                const err = new Error(data.message || 'API error');
+                err.response = { status: data.code, data };
+                throw err;
+            }
+
             if (response.ok) {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
@@ -73,7 +88,8 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Register error:', error);
-            return { success: false, message: 'Network error. Please try again.' };
+            const message = error?.response?.data?.message || error?.message || 'Network error. Please try again.';
+            return { success: false, message };
         }
     };
 

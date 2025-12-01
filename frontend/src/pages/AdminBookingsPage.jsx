@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../axios/axios';
+import { toast } from 'react-toastify';
 
 const AdminBookingsPage = () => {
     const navigate = useNavigate();
@@ -9,6 +10,7 @@ const AdminBookingsPage = () => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('pending'); // all, pending, approved, rejected
     const [modalState, setModalState] = useState({ isOpen: false, booking: null, action: null });
+    const [receiptModal, setReceiptModal] = useState({ isOpen: false, booking: null });
     const [notes, setNotes] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
 
@@ -36,12 +38,14 @@ const AdminBookingsPage = () => {
                 notes: notes.trim() || undefined
             });
 
-            setMessage(`Booking ${status === 'approved' ? 'disetujui' : 'ditolak'} berhasil`);
+            const msg = `Booking ${status === 'approved' ? 'disetujui' : 'ditolak'} berhasil`;
+            toast.success(msg);
             setModalState({ isOpen: false, booking: null, action: null });
             setNotes('');
             fetchAllBookings();
         } catch (error) {
-            setMessage(error.response?.data?.message || 'Terjadi kesalahan');
+            const errMsg = error.response?.data?.message || 'Terjadi kesalahan';
+            toast.error(errMsg);
         } finally {
             setActionLoading(false);
         }
@@ -85,7 +89,7 @@ const AdminBookingsPage = () => {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto"></div>
                     <p className="mt-4 text-gray-600">Memuat booking...</p>
                 </div>
             </div>
@@ -127,7 +131,7 @@ const AdminBookingsPage = () => {
                                     onClick={() => setFilter(key)}
                                     className={`px-4 py-2 rounded-md text-sm font-medium ${
                                         filter === key
-                                            ? 'bg-blue-600 text-white'
+                                            ? 'bg-gradient-to-br from-pink-400 to-pink-600 text-white'
                                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                     }`}
                                 >
@@ -167,7 +171,7 @@ const AdminBookingsPage = () => {
                                         <p className="text-sm text-gray-600 mb-1">Jam yang dibooking:</p>
                                         <div className="flex flex-wrap gap-1">
                                             {booking.timeSlots.map(slot => (
-                                                <span key={slot} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                                                <span key={slot} className="bg-pink-100 text-pink-800 px-2 py-1 rounded text-sm">
                                                     Jam {slot}
                                                 </span>
                                             ))}
@@ -216,6 +220,18 @@ const AdminBookingsPage = () => {
                                             </button>
                                         </div>
                                     )}
+
+                                    {/* Receipt Button for Approved Bookings */}
+                                    {booking.status === 'approved' && (
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => setReceiptModal({ isOpen: true, booking })}
+                                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                                            >
+                                                Lihat Struk
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -241,7 +257,7 @@ const AdminBookingsPage = () => {
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
                                 placeholder="Tambahkan catatan jika diperlukan..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                                 rows={3}
                             />
                         </div>
@@ -264,6 +280,93 @@ const AdminBookingsPage = () => {
                                 </button>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Receipt Modal */}
+            {receiptModal.isOpen && receiptModal.booking && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="text-center mb-6">
+                            <h3 className="text-2xl font-bold text-gray-800 mb-2">Bukti Booking Ruangan</h3>
+                            <p className="text-gray-600">Sistem Booking Ruangan Sekolah</p>
+                        </div>
+
+                        <div className="border-t border-b border-gray-300 py-4 mb-6">
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Tanggal Booking:</span>
+                                    <span className="text-gray-900">{formatDate(receiptModal.booking.date)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Waktu Booking:</span>
+                                    <span className="text-gray-900">
+                                        Jam {receiptModal.booking.timeSlots.join(', ')}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Ruangan:</span>
+                                    <span className="text-gray-900">{receiptModal.booking.room.name}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Kepentingan:</span>
+                                    <span className="text-gray-900">
+                                        {receiptModal.booking.purpose || 'Tidak ditentukan'}
+                                    </span>
+                                </div>
+                                {receiptModal.booking.purposeDetails && (
+                                    <div className="flex justify-between">
+                                        <span className="font-semibold text-gray-700">Detail Kepentingan:</span>
+                                        <span className="text-gray-900">{receiptModal.booking.purposeDetails}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Nama Pemesan:</span>
+                                    <span className="text-gray-900">{receiptModal.booking.user.name}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Role:</span>
+                                    <span className="text-gray-900">{receiptModal.booking.user.role}</span>
+                                </div>
+                                {receiptModal.booking.user.kelas && (
+                                    <div className="flex justify-between">
+                                        <span className="font-semibold text-gray-700">Kelas:</span>
+                                        <span className="text-gray-900">{receiptModal.booking.user.kelas}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Status:</span>
+                                    <span className="text-green-600 font-semibold">Disetujui</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Disetujui Pada:</span>
+                                    <span className="text-gray-900">
+                                        {new Date(receiptModal.booking.approvedAt).toLocaleString('id-ID')}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="text-center text-sm text-gray-500 mb-6">
+                            <p>Booking ID: {receiptModal.booking._id}</p>
+                            <p>Dibuat: {new Date(receiptModal.booking.createdAt).toLocaleString('id-ID')}</p>
+                        </div>
+
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => window.print()}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
+                            >
+                                Cetak Struk
+                            </button>
+                            <button
+                                onClick={() => setReceiptModal({ isOpen: false, booking: null })}
+                                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                            >
+                                Tutup
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

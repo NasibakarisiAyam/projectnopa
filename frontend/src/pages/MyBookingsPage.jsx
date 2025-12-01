@@ -1,55 +1,82 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import axios from '../axios/axios';
+import { toast } from 'react-toastify';
 
 const MyBookingsPage = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
-
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('all'); // all, pending, approved, rejected
+    const [query, setQuery] = useState('');
+    const [receiptModal, setReceiptModal] = useState({ isOpen: false, booking: null });
 
     useEffect(() => {
         fetchMyBookings();
     }, []);
 
     const fetchMyBookings = async () => {
+        setLoading(true);
         try {
             const response = await axios.get('/booking/my-bookings');
-            setBookings(response.data);
+            setBookings(response.data || []);
         } catch (error) {
-            console.error('Error fetching bookings:', error);
+            console.error('Error fetching my bookings:', error);
+            toast.error('Gagal memuat data booking Anda.');
         } finally {
             setLoading(false);
         }
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'approved': return 'bg-green-100 text-green-800';
-            case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'rejected': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
+    const handleDelete = async (booking) => {
+        if (booking.status !== 'pending') {
+            toast.warn('Hanya booking yang berstatus "Menunggu" yang bisa dibatalkan.');
+            return;
+        }
+
+        const bookingId = booking._id;
+
+        if (!window.confirm('Apakah Anda yakin ingin membatalkan booking ini?')) return;
+
+        try {
+            await axios.delete(`/booking/bookings/${bookingId}`);
+            toast.success('Booking berhasil dibatalkan.');
+            fetchMyBookings();
+        } catch (error) {
+            console.error('Error deleting booking:', error);
+            toast.error(error.response?.data?.message || 'Gagal membatalkan booking.');
         }
     };
 
-    const getStatusText = (status) => {
-        switch (status) {
-            case 'approved': return 'Disetujui';
-            case 'pending': return 'Menunggu';
-            case 'rejected': return 'Ditolak';
-            default: return status;
-        }
-    };
+    const filteredBookings = useMemo(() => {
+        if (!query) return bookings;
+        const q = query.toLowerCase();
+        return bookings.filter(b =>
+            (b.room?.name || '').toLowerCase().includes(q) ||
+            (b.status || '').toLowerCase().includes(q) ||
+            (b.date || '').toString().toLowerCase().includes(q)
+        );
+    }, [bookings, query]);
 
-    const filteredBookings = bookings.filter(booking => {
-        if (filter === 'all') return true;
-        return booking.status === filter;
-    });
+    const getStatusPill = (status) => {
+        const styles = {
+            approved: 'bg-green-100 text-green-800',
+            pending: 'bg-yellow-100 text-yellow-800',
+            rejected: 'bg-red-100 text-red-800',
+        };
+        const text = {
+            approved: 'Disetujui',
+            pending: 'Menunggu',
+            rejected: 'Ditolak',
+        };
+        return (
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
+                {text[status] || status}
+            </span>
+        );
+    };
 
     const formatDate = (dateString) => {
+        if (!dateString) return '';
         return new Date(dateString).toLocaleDateString('id-ID', {
             weekday: 'long',
             year: 'numeric',
@@ -58,126 +85,184 @@ const MyBookingsPage = () => {
         });
     };
 
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const closeModal = () => {
+        setReceiptModal({ isOpen: false, booking: null });
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Memuat booking...</p>
-                </div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            {/* Main Content */}
+        <div className="min-h-screen bg-gray-100 pt-20">
             <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <div className="bg-white rounded-lg shadow-md p-6">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Booking Saya</h2>
                         <button
-                            onClick={() => navigate('/book')}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                            onClick={() => navigate('/dashboard')}
+                            className="text-pink-600 hover:text-pink-800 text-sm font-medium transition-colors"
                         >
-                            Buat Booking Baru
+                            &larr; Kembali ke Dashboard
                         </button>
                     </div>
 
-                    {/* Filter */}
-                    <div className="mb-6">
-                        <div className="flex space-x-2">
-                            {[
-                                { key: 'all', label: 'Semua' },
-                                ...(user?.role !== 'guru' ? [{ key: 'pending', label: 'Menunggu' }] : []),
-                                { key: 'approved', label: 'Disetujui' },
-                                { key: 'rejected', label: 'Ditolak' }
-                            ].map(({ key, label }) => (
-                                <button
-                                    key={key}
-                                    onClick={() => setFilter(key)}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium ${
-                                        filter === key
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                    }`}
-                                >
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
+                    <div className="mb-4">
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="Cari berdasarkan ruangan, status, atau tanggal..."
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        />
                     </div>
 
-                    {/* Bookings List */}
-                    {filteredBookings.length === 0 ? (
-                        <div className="text-center py-12">
-                            <p className="text-gray-500 text-lg">Belum ada booking</p>
-                            <button
-                                onClick={() => navigate('/book')}
-                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium"
-                            >
-                                Buat Booking Pertama
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {filteredBookings.map(booking => (
-                                <div key={booking._id} className="border border-gray-200 rounded-lg p-4">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
+                    <div className="space-y-4">
+                        {filteredBookings.length > 0 ? (
+                            filteredBookings.map(booking => (
+                                <div
+                                    key={booking._id}
+                                    className="border border-gray-200 rounded-lg p-4 transition-shadow hover:shadow-md"
+                                >
+                                    <div className="flex flex-col sm:flex-row justify-between sm:items-start">
+                                        <div className="flex-1">
                                             <h3 className="text-lg font-semibold text-gray-900">
-                                                {booking.room.name}
+                                                {booking.room?.name || 'Ruangan tidak tersedia'}
                                             </h3>
-                                            <p className="text-gray-600">
-                                                {formatDate(booking.date)}
+                                            <p className="text-gray-600">{formatDate(booking.date)}</p>
+                                            <div className="flex flex-wrap gap-1 mt-2">
+                                                {booking.timeSlots && booking.timeSlots.length > 0 ? (
+                                                    booking.timeSlots.map((slot, index) => (
+                                                        <span
+                                                            key={`${booking._id}-${slot}-${index}`}
+                                                            className="bg-pink-100 text-pink-800 px-2 py-1 rounded text-xs"
+                                                        >
+                                                            Jam {slot}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-gray-500 text-xs">Tidak ada waktu</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="mt-3 sm:mt-0 sm:text-right">
+                                            {getStatusPill(booking.status)}
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Dibuat: {new Date(booking.createdAt).toLocaleDateString('id-ID')}
                                             </p>
                                         </div>
-                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}>
-                                            {getStatusText(booking.status)}
-                                        </span>
                                     </div>
-
-                                    <div className="mb-3">
-                                        <p className="text-sm text-gray-600 mb-1">Jam yang dibooking:</p>
-                                        <div className="flex flex-wrap gap-1">
-                                            {booking.timeSlots.map(slot => (
-                                                <span key={slot} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                                                    Jam {slot}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {booking.reason && (
-                                        <div className="mb-3">
-                                            <p className="text-sm text-gray-600 mb-1">Alasan:</p>
-                                            <p className="text-gray-800 bg-gray-50 p-2 rounded">{booking.reason}</p>
-                                        </div>
-                                    )}
-
-                                    {booking.notes && (
-                                        <div className="mb-3">
-                                            <p className="text-sm text-gray-600 mb-1">Catatan Admin:</p>
-                                            <p className="text-gray-800 bg-yellow-50 p-2 rounded border-l-4 border-yellow-400">
-                                                {booking.notes}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    <div className="text-sm text-gray-500">
-                                        Dibuat: {new Date(booking.createdAt).toLocaleString('id-ID')}
-                                        {booking.approvedAt && (
-                                            <span className="ml-4">
-                                                Diputuskan: {new Date(booking.approvedAt).toLocaleString('id-ID')}
-                                            </span>
+                                    <div className="border-t my-3"></div>
+                                    <div className="flex items-center justify-end space-x-2">
+                                        {booking.status === 'approved' && (
+                                            <button
+                                                onClick={() => setReceiptModal({ isOpen: true, booking })}
+                                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                                            >
+                                                Lihat Struk
+                                            </button>
+                                        )}
+                                        {booking.status === 'pending' && (
+                                            <button
+                                                onClick={() => handleDelete(booking)}
+                                                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                                            >
+                                                Batalkan
+                                            </button>
                                         )}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                            ))
+                        ) : (
+                            <div className="text-center py-12 text-gray-500">
+                                <p>Tidak ada data booking yang ditemukan.</p>
+                                {query && (
+                                    <p className="text-sm mt-2">
+                                        Coba ubah kata kunci pencarian Anda.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {/* Receipt Modal */}
+            {receiptModal.isOpen && receiptModal.booking && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg p-8 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="text-center mb-6">
+                            <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                                Bukti Booking Ruangan
+                            </h3>
+                            <p className="text-gray-600">Sistem Booking Ruangan Sekolah</p>
+                        </div>
+                        <div className="border-t border-b border-gray-300 py-4 mb-6">
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Tanggal Booking:</span>
+                                    <span className="text-gray-900">{formatDate(receiptModal.booking.date)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Waktu Booking:</span>
+                                    <span className="text-gray-900">
+                                        Jam {receiptModal.booking.timeSlots?.join(', ') || '-'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Ruangan:</span>
+                                    <span className="text-gray-900">
+                                        {receiptModal.booking.room?.name || '-'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Nama Pemesan:</span>
+                                    <span className="text-gray-900">
+                                        {receiptModal.booking.user?.name || '-'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-semibold text-gray-700">Status:</span>
+                                    <span className="text-green-600 font-semibold">Disetujui</span>
+                                </div>
+                                {receiptModal.booking.approvedAt && (
+                                    <div className="flex justify-between">
+                                        <span className="font-semibold text-gray-700">Disetujui Pada:</span>
+                                        <span className="text-gray-900">
+                                            {new Date(receiptModal.booking.approvedAt).toLocaleString('id-ID')}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="text-center text-sm text-gray-500 mb-6">
+                            <p>Booking ID: {receiptModal.booking._id}</p>
+                        </div>
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={handlePrint}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                            >
+                                Cetak Struk
+                            </button>
+                            <button
+                                onClick={closeModal}
+                                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

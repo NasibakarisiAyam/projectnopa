@@ -51,47 +51,61 @@ export const getUserBookings = async (req, res) => {
 // Create a new booking
 export const createBooking = async (req, res) => {
     try {
-        const { roomId, date, timeSlots, reason } = req.body;
+        const { roomId, date, timeSlots, reason, purpose, purposeDetails } = req.body;
         const userId = req.user._id;
 
         // Validate required fields
         if (!roomId || !date || !timeSlots || timeSlots.length === 0) {
+            console.log('Validation failed:', { roomId, date, timeSlots });
             return res.status(400).json({ message: 'Room, date, and time slots are required' });
         }
 
-        // Check if user is siswa and reason is provided
+        // Load user
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        if (user.role === 'siswa' && (!reason || reason.trim() === '')) {
-            return res.status(400).json({ message: 'Reason is required for student bookings' });
+        // Require purpose for all bookings; if 'lainnya' require purposeDetails
+        if (!purpose || purpose.trim() === '') {
+            return res.status(400).json({ message: 'Purpose (tujuan) is required' });
+        }
+
+        if (purpose === 'lainnya' && (!purposeDetails || purposeDetails.trim() === '')) {
+            return res.status(400).json({ message: 'Detail tujuan diperlukan ketika memilih "Lainnya"' });
         }
 
         // Check for time slot conflicts
+        // Prevent double-booking: consider both approved and pending bookings as conflicts
         const conflictingBookings = await Booking.find({
             room: roomId,
             date: new Date(date),
-            status: 'approved',
+            status: { $in: ['approved', 'pending'] },
             timeSlots: { $in: timeSlots }
         });
 
         if (conflictingBookings.length > 0) {
-            return res.status(409).json({ message: 'Selected time slots are already booked' });
+            return res.status(409).json({ message: 'Selected time slots are already booked or pending approval' });
         }
 
         // Create booking
-        const booking = new Booking({
+        const bookingData = {
             user: userId,
             room: roomId,
             date: new Date(date),
             timeSlots,
-            reason: user.role === 'siswa' ? reason.trim() : undefined,
+            // reason is optional now
+            reason: reason ? reason.trim() : undefined,
+            purpose,
+            purposeDetails,
             status: user.role === 'guru' ? 'approved' : 'pending'
-        });
+        };
+        console.log('Creating booking with data:', bookingData);
+
+        const booking = new Booking(bookingData);
 
         await booking.save();
+        console.log('Booking saved successfully:', booking._id);
 
         const populatedBooking = await Booking.findById(booking._id)
             .populate('user', 'name nis kelas role')
@@ -218,7 +232,7 @@ export const deleteBooking = async (req, res) => {
         }
 
         // Check if user owns the booking or is admin
-        if (booking.user.toString() !== req.user._id && req.user.role !== 'admin') {
+        if (booking.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Not authorized to delete this booking' });
         }
 
