@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "nodemon backend/server.js",
     "start": "node backend/server.js",
-    "build": "npm run dev && cd frontend && npm run build",
-    "all": "npm run start && cd frontend & npm run dev"
+    "build": "npm install && cd frontend && npm install",
+    "all": "npm run dev && cd frontend & npm run dev"
   },
   "keywords": [],
   "author": "",
