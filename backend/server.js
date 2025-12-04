@@ -43,6 +43,25 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Something went wrong!' });
 });
 
+// ===============================================================
+// ============== KONFIGURASI UNTUK DEPLOYMENT =====================
+// ===============================================================
+
+// Cek jika aplikasi berjalan di lingkungan produksi
+if (process.env.NODE_ENV === 'production') {
+    // Tentukan path ke folder build/dist frontend
+    const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+
+    // Sajikan file statis dari folder frontend
+    app.use(express.static(frontendDistPath));
+
+    // Untuk semua permintaan GET yang tidak cocok dengan rute API di atas,
+    // kirimkan file index.html dari frontend.
+    app.get('*', (req, res) => {
+        res.sendFile(path.resolve(frontendDistPath, 'index.html'));
+    });
+}
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, async () => {
