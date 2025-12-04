@@ -1,15 +1,12 @@
 import express from 'express';
-import { register, login, getProfile } from '../controllers/authController.js';
-import { authenticateToken, authorizeRoles } from '../middleware/auth.js';
+import { register, login } from '../controllers/authController.js';
+import { authenticateToken, authorizeRoles } from '../middleware/auth.js'; // Keep these for other role-based routes if needed
 
 const router = express.Router();
 
 // Public routes
 router.post('/register', register);
 router.post('/login', login);
-
-// Protected routes
-router.get('/profile', authenticateToken, getProfile);
 
 // Role-based protected routes (examples)
 router.get('/admin', authenticateToken, authorizeRoles('admin'), (req, res) => {

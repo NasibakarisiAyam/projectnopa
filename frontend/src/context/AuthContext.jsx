@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
@@ -15,14 +15,34 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check if user is logged in on app start
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
+        const verifyUser = async () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const response = await fetch('http://localhost:5000/api/user/profile', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
 
-        if (token && userData) {
-            setUser(JSON.parse(userData));
-        }
-        setLoading(false);
+                    if (response.ok) {
+                        const userProfile = await response.json();
+                        setUser(userProfile);
+                        // Optionally re-save user data to keep it fresh
+                        localStorage.setItem('user', JSON.stringify(userProfile));
+                    } else {
+                        // Token is invalid or expired
+                        logout();
+                    }
+                } catch (error) {
+                    console.error("Session verification failed:", error);
+                    logout(); // Logout on network error during verification
+                }
+            }
+            setLoading(false);
+        };
+
+        verifyUser();
     }, []);
 
     const login = async (nis, password) => {

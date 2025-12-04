@@ -31,7 +31,11 @@ export const register = async (req, res) => {
         });
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ message: 'Server error during registration' });
+        // Memberikan pesan error yang lebih spesifik jika ada error validasi
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Terjadi kesalahan pada server saat registrasi' });
     }
 };
 
@@ -61,18 +65,6 @@ export const login = async (req, res) => {
         });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error during login' });
+        res.status(500).json({ message: 'Terjadi kesalahan pada server saat login' });
     }
-};
-
-export const getProfile = async (req, res) => {
-    try {
-        res.json({
-            message: 'Profile retrieved successfully',
-            user: req.user.toJSON()
-        });
-    } catch (error) {
-        console.error('Get profile error:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
+}

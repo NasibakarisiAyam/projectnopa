@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// Create axios instance with base configuration
+// axios instance bismillah
 const instance = axios.create({
     baseURL: 'http://localhost:5000/api',
     headers: {
@@ -8,7 +8,7 @@ const instance = axios.create({
     },
 });
 
-// Request interceptor to add auth token
+// req interseptor
 instance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
@@ -22,8 +22,7 @@ instance.interceptors.request.use(
     }
 );
 
-// Response interceptor to handle errors
-// Treat application-level `code` in response as an error as well
+//interseptor 
 instance.interceptors.response.use(
     (response) => {
         const data = response?.data;

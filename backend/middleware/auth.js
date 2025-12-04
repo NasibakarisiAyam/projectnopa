@@ -17,7 +17,11 @@ export const authenticateToken = async (req, res, next) => {
             return res.status(401).json({ message: 'Invalid token' });
         }
 
-        req.user = user;
+        req.user = {
+            _id: user._id,
+            role: user.role,
+            // You can add other non-sensitive fields here if needed
+        };
         next();
     } catch (error) {
         return res.status(401).json({ message: 'Invalid or expired token' });

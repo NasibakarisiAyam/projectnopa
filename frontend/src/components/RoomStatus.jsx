@@ -18,7 +18,7 @@ const RoomStatus = ({ statuses = [] }) => {
                             {s.isFree ? (
                                 <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Tersedia</span>
                             ) : (
-                                <span className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">Terisi</span>
+                                <span className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">Tidak Tersedia</span>
                             )}
                         </div>
                     </li>

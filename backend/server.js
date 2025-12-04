@@ -4,6 +4,8 @@ import cors from "cors";
 import { connectDB } from "./lib/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js"; // Import rute admin
 import Room from "./models/room.model.js";
 
 dotenv.config();
@@ -21,6 +23,9 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/booking', bookingRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/admin', adminRoutes); // Gunakan rute admin
+
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -46,5 +51,3 @@ app.listen(PORT, async () => {
         console.error('Error initializing rooms:', error);
     }
 });
-
-

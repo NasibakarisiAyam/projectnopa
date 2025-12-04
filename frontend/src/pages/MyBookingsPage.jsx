@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../axios/axios';
 import { toast } from 'react-toastify';
+import ReceiptModal from '../components/ReceiptModal'; // Impor komponen baru
 
 const MyBookingsPage = () => {
     const navigate = useNavigate();
@@ -85,14 +86,6 @@ const MyBookingsPage = () => {
         });
     };
 
-    const handlePrint = () => {
-        window.print();
-    };
-
-    const closeModal = () => {
-        setReceiptModal({ isOpen: false, booking: null });
-    };
-
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -134,7 +127,7 @@ const MyBookingsPage = () => {
                                 >
                                     <div className="flex flex-col sm:flex-row justify-between sm:items-start">
                                         <div className="flex-1">
-                                            <h3 className="text-lg font-semibold text-gray-900">
+                                            <h3 className="text-lg font-semibold text-gray-900 capitalize">
                                                 {booking.room?.name || 'Ruangan tidak tersedia'}
                                             </h3>
                                             <p className="text-gray-600">{formatDate(booking.date)}</p>
@@ -196,72 +189,11 @@ const MyBookingsPage = () => {
             </div>
 
             {/* Receipt Modal */}
-            {receiptModal.isOpen && receiptModal.booking && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg p-8 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <div className="text-center mb-6">
-                            <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                                Bukti Booking Ruangan
-                            </h3>
-                            <p className="text-gray-600">Sistem Booking Ruangan Sekolah</p>
-                        </div>
-                        <div className="border-t border-b border-gray-300 py-4 mb-6">
-                            <div className="space-y-3">
-                                <div className="flex justify-between">
-                                    <span className="font-semibold text-gray-700">Tanggal Booking:</span>
-                                    <span className="text-gray-900">{formatDate(receiptModal.booking.date)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="font-semibold text-gray-700">Waktu Booking:</span>
-                                    <span className="text-gray-900">
-                                        Jam {receiptModal.booking.timeSlots?.join(', ') || '-'}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="font-semibold text-gray-700">Ruangan:</span>
-                                    <span className="text-gray-900">
-                                        {receiptModal.booking.room?.name || '-'}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="font-semibold text-gray-700">Nama Pemesan:</span>
-                                    <span className="text-gray-900">
-                                        {receiptModal.booking.user?.name || '-'}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="font-semibold text-gray-700">Status:</span>
-                                    <span className="text-green-600 font-semibold">Disetujui</span>
-                                </div>
-                                {receiptModal.booking.approvedAt && (
-                                    <div className="flex justify-between">
-                                        <span className="font-semibold text-gray-700">Disetujui Pada:</span>
-                                        <span className="text-gray-900">
-                                            {new Date(receiptModal.booking.approvedAt).toLocaleString('id-ID')}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="text-center text-sm text-gray-500 mb-6">
-                            <p>Booking ID: {receiptModal.booking._id}</p>
-                        </div>
-                        <div className="flex space-x-2">
-                            <button
-                                onClick={handlePrint}
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
-                            >
-                                Cetak Struk
-                            </button>
-                            <button
-                                onClick={closeModal}
-                                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                            >
-                                Tutup
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            {receiptModal.isOpen && (
+                <ReceiptModal
+                    booking={receiptModal.booking}
+                    onClose={() => setReceiptModal({ isOpen: false, booking: null })}
+                />
             )}
         </div>
     );

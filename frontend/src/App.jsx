@@ -8,7 +8,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import Login from "./components/Login";
 import Dashboard from "./pages/Dashboard";
 import BookPage from "./pages/BookPage";
+import AdminUserPage from "./pages/AdminUserPage"; // Pastikan ini diimpor
 import MyBookingsPage from "./pages/MyBookingsPage";
+import AdminBookingsPage from "./pages/AdminBookingsPage"; // Impor halaman admin booking
+import SettingsPage from "./pages/SettingPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
@@ -52,46 +55,46 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="App">
+        <>
           <Navbar />
-
-          <div className="w-full bg-white border-b shadow-sm">
-            <div className="max-w-7xl mx-auto px-6 py-3">
-              <div className="text-sm text-gray-600">&nbsp;</div>
-            </div>
-          </div>
-
-          <main className="pt-6">
+          <main className="flex-grow bg-pink-50">
             <Routes>
-              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              {/* Rute Publik */}
               <Route path="/login" element={<Login />} />
+              {/* Rute yang dilindungi untuk semua pengguna yang sudah login */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Route>
 
+              {/* Rute yang dilindungi berdasarkan peran */}
+              <Route element={<ProtectedRoute allowedRoles={["siswa", "guru"]} />}>
+                <Route path="/book" element={<BookPage />} />
+              </Route>
 
-              <Route
-                path="/contact"
-                element={
-                  <div className="min-h-screen bg-gray-50 py-12">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                      <div className="bg-white rounded-lg shadow-md p-6">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-4">Contact Us</h1>
-                        <p className="text-gray-600">For support or inquiries, please contact our administration team.</p>
-                      </div>
-                    </div>
-                  </div>
-                }
-              />
+              <Route element={<ProtectedRoute allowedRoles={["siswa", "guru", "admin"]} />}>
+                <Route path="/my-bookings" element={<MyBookingsPage />} />
+              </Route>
 
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/book" element={<ProtectedRoute allowedRoles={["siswa","guru"]}><BookPage /></ProtectedRoute>} />
-              <Route path="/my-bookings" element={<ProtectedRoute allowedRoles={["siswa","guru","admin"]}><MyBookingsPage /></ProtectedRoute>} />
-
+              {/* Rute khusus Admin */}
+              <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+                <Route path="/admin/bookings" element={<AdminBookingsPage />} /> {/* Rute baru untuk admin booking */}
+                <Route path="/admin/users" element={<AdminUserPage />} />
+              </Route>
+              
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
-        </div>
-
-        <Footer />
-        <ToastContainer position="top-right" newestOnTop />
+          <Footer />
+        </>
+        <ToastContainer 
+          position="top-right" 
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          pauseOnFocusLoss />
       </Router>
     </AuthProvider>
   );

@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema({
         enum: ['siswa', 'guru', 'admin'],
         default: 'siswa',
         required: true
+    },
+    photo: {
+        type: String,
+        default: ''
     }
 }, {
     timestamps: true

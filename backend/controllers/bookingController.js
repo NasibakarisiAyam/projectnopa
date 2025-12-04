@@ -16,7 +16,18 @@ export const getRooms = async (req, res) => {
 export const getBookingsByDate = async (req, res) => {
     try {
         const { date, roomId } = req.query;
-        const query = { date: new Date(date) };
+        if (!date) {
+            return res.status(400).json({ message: 'Date parameter is required' });
+        }
+
+        // Create a date range for the entire day to avoid timezone issues
+        const startDate = new Date(date);
+        startDate.setUTCHours(0, 0, 0, 0);
+
+        const endDate = new Date(date);
+        endDate.setUTCHours(23, 59, 59, 999);
+
+        const query = { date: { $gte: startDate, $lte: endDate } };
 
         if (roomId) {
             query.room = roomId;

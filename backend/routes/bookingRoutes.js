@@ -22,6 +22,9 @@ router.get('/rooms', getRooms);
 // Get bookings by date (optional room filter)
 router.get('/bookings', getBookingsByDate);
 
+// Get all bookings for a specific date (for availability check)
+router.get('/by-date', getBookingsByDate);
+
 // Get user's own bookings
 router.get('/my-bookings', getUserBookings);
 
