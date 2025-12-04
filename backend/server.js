@@ -17,9 +17,22 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Konfigurasi CORS yang lebih dinamis
+const allowedOrigins = [
+    'http://localhost:5173', // Untuk development lokal
+    process.env.FRONTEND_URL // Untuk production di Vercel
+];
+
 // Middleware
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: function (origin, callback) {
+        // Izinkan request tanpa origin (seperti dari Postman atau mobile apps)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            return callback(new Error('CORS policy does not allow access from the specified Origin.'), false);
+        }
+        return callback(null, true);
+    },
     credentials: true
 }));
 app.use(express.json());
@@ -42,25 +55,6 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ message: 'Something went wrong!' });
 });
-
-// ===============================================================
-// ============== KONFIGURASI UNTUK DEPLOYMENT =====================
-// ===============================================================
-
-// Cek jika aplikasi berjalan di lingkungan produksi
-if (process.env.NODE_ENV === 'production') {
-    // Tentukan path ke folder build/dist frontend
-    const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
-
-    // Sajikan file statis dari folder frontend
-    app.use(express.static(frontendDistPath));
-
-    // Untuk semua permintaan GET yang tidak cocok dengan rute API di atas,
-    // kirimkan file index.html dari frontend.
-    app.get('*', (req, res) => {
-        res.sendFile(path.resolve(frontendDistPath, 'index.html'));
-    });
-}
 
 const PORT = process.env.PORT || 5000;
 
